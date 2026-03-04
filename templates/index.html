@@ -97,12 +97,17 @@ headers:{"Content-Type":"application/json"},
 body:JSON.stringify({email,password})
 })
 
+if(!res.ok){
+alert("Invalid email or password")
+return
+}
+
 const data = await res.json()
 
 token = data.access_token
 
 localStorage.setItem("token",token)
-localStorage.setItem("userEmail",data.email)
+localStorage.setItem("userEmail",email)
 
 showApp()
 showUser()
@@ -193,21 +198,22 @@ if(title.trim()===""){
 return
 }
 
-await fetch("/habits",{
-
+const res = await fetch("/habits",{
 method:"POST",
-
 headers:{
 "Content-Type":"application/json",
 "Authorization":"Bearer "+token
 },
-
 body:JSON.stringify({
 title:title,
 description:"habit"
 })
-
 })
+
+if(!res.ok){
+alert("Failed to add habit")
+return
+}
 
 input.value=""
 
@@ -266,14 +272,19 @@ headers:{
 }
 })
 
+if(!res.ok){
+return
+}
+
 const data = await res.json()
 
-const percent = data.completion_percentage
+const percent = data.completion_percentage || 0
+const streak = data.current_streak || 0
 
 document.getElementById("progressFill").style.width = percent + "%"
 
 document.getElementById("progressText").innerText =
-percent + "% consistency | Streak: " + data.current_streak + " days"
+percent + "% consistency | Streak: " + streak + " days"
 
 }
 
