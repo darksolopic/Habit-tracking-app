@@ -8,12 +8,22 @@ from datetime import date, timedelta
 from jose import jwt
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from fastapi import Request
+
+
 SECRET_KEY = "supersecretkey"
 ALGORITHM = "HS256"
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 security = HTTPBearer()
 
 
@@ -69,7 +79,11 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
     token = create_access_token({"sub": db_user.email})
-    return {"access_token": token}
+
+    return {
+        "access_token": token,
+        "email": db_user.email
+    }
 
 
 #HABIT ROUTES
@@ -133,6 +147,26 @@ def complete_habit(
 
     return {"message": "Habit marked as completed"}
 
+@app.delete("/habits/{habit_id}")
+def delete_habit(
+    habit_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    habit = db.query(Habit).filter(
+        Habit.id == habit_id,
+        Habit.user_id == current_user.id
+    ).first()
+
+    if not habit:
+        raise HTTPException(status_code=404, detail="Habit not found")
+
+    db.delete(habit)
+    db.commit()
+
+    return {"message": "Habit deleted"}
+
 
 #DASHBOARD
 
@@ -186,6 +220,10 @@ def dashboard(
         "completion_percentage": round(completion_percentage, 2),
         "current_streak": streak
     }
-@app.get("/")
-def home():
-    return {"message": "Habit Tracker API is running"}
+
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request}
+    )

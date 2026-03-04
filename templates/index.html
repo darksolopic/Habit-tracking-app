@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Consistency Tracker</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<h1>Consistency Tracker</h1>
+
+<div class="container">
+
+<!-- LOGIN BOX -->
+<div id="loginBox">
+
+<h3>Login</h3>
+
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+
+<br><br>
+
+<button onclick="login()">Login</button>
+<button onclick="register()">Register</button>
+
+</div>
+
+
+<!-- APP BOX -->
+<div id="appBox" style="display:none">
+
+<div class="topBar">
+<button onclick="logout()">Logout</button>
+<p>Logged in as: <b id="userEmail"></b></p>
+</div>
+
+<h3>Add Habit</h3>
+
+<input id="habitName" placeholder="New habit">
+<button onclick="createHabit()">Add Habit</button>
+
+<h3>Progress</h3>
+
+<div class="progressBar">
+<div id="progressFill"></div>
+</div>
+
+<p id="progressText"></p>
+
+<h3>Your Habits</h3>
+
+<ul id="habitList"></ul>
+
+</div>
+
+</div>
+
+
+<script>
+
+let token = localStorage.getItem("token")
+
+if(token){
+showApp()
+showUser()
+loadHabits()
+loadDashboard()
+}
+
+
+async function register(){
+
+const email = document.getElementById("email").value
+const password = document.getElementById("password").value
+
+await fetch("/register",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({email,password})
+})
+
+alert("User registered! Now login.")
+
+}
+
+
+async function login(){
+
+const email = document.getElementById("email").value
+const password = document.getElementById("password").value
+
+const res = await fetch("/login",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({email,password})
+})
+
+const data = await res.json()
+
+token = data.access_token
+
+localStorage.setItem("token",token)
+localStorage.setItem("userEmail",data.email)
+
+showApp()
+showUser()
+loadHabits()
+loadDashboard()
+
+}
+
+
+function logout(){
+
+localStorage.removeItem("token")
+localStorage.removeItem("userEmail")
+location.reload()
+
+}
+
+
+function showApp(){
+
+document.getElementById("loginBox").style.display="none"
+document.getElementById("appBox").style.display="block"
+
+}
+
+
+function showUser(){
+
+const email = localStorage.getItem("userEmail")
+
+if(email){
+document.getElementById("userEmail").innerText = email
+}
+
+}
+
+
+async function loadHabits(){
+
+const res = await fetch("/habits",{
+headers:{
+"Authorization":"Bearer "+token
+}
+})
+
+const habits = await res.json()
+
+const list = document.getElementById("habitList")
+list.innerHTML=""
+
+habits.forEach(habit=>{
+
+const li=document.createElement("li")
+
+li.innerHTML=`
+<div class="habitItem">
+
+<span class="habitTitle">${habit.title}</span>
+
+<div class="habitButtons">
+
+<button class="completeBtn" onclick="completeHabit(${habit.id}, this)">
+✔
+</button>
+
+<button class="deleteBtn" onclick="deleteHabit(${habit.id})">
+✖
+</button>
+
+</div>
+
+</div>
+`
+
+list.appendChild(li)
+
+})
+
+}
+
+
+async function createHabit(){
+
+const input = document.getElementById("habitName")
+const title = input.value
+
+if(title.trim()===""){
+return
+}
+
+await fetch("/habits",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+"Authorization":"Bearer "+token
+},
+
+body:JSON.stringify({
+title:title,
+description:"habit"
+})
+
+})
+
+input.value=""
+
+loadHabits()
+loadDashboard()
+
+}
+
+
+async function completeHabit(id, btn){
+
+await fetch("/habits/"+id+"/complete",{
+method:"POST",
+headers:{
+"Authorization":"Bearer "+token
+}
+})
+
+btn.classList.add("completed")
+
+setTimeout(()=>{
+loadHabits()
+loadDashboard()
+},500)
+
+}
+
+
+async function deleteHabit(id){
+
+await fetch("/habits/"+id,{
+method:"DELETE",
+headers:{
+"Authorization":"Bearer "+token
+}
+})
+
+loadHabits()
+loadDashboard()
+
+}
+
+
+document.getElementById("habitName").addEventListener("keypress", function(e){
+if(e.key === "Enter"){
+createHabit()
+}
+})
+
+
+async function loadDashboard(){
+
+const res = await fetch("/dashboard",{
+headers:{
+"Authorization":"Bearer "+token
+}
+})
+
+const data = await res.json()
+
+const percent = data.completion_percentage
+
+document.getElementById("progressFill").style.width = percent + "%"
+
+document.getElementById("progressText").innerText =
+percent + "% consistency | Streak: " + data.current_streak + " days"
+
+}
+
+</script>
+
+</body>
+</html>
