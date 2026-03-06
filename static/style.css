@@ -51,6 +51,7 @@ transition:0.2s;
 
 button:hover{
 background:#43a047;
+opacity:0.9;
 }
 
 li{
@@ -93,13 +94,7 @@ transform:scale(1.2);
 transition:0.3s;
 }
 
-.deleteBtn{
-background:#e74c3c;
-}
 
-.deleteBtn:hover{
-background:#c0392b;
-}
 
 .progressBar{
 width:100%;
@@ -116,3 +111,15 @@ background:#4CAF50;
 width:0%;
 transition:0.5s;
 }
+
+.message{
+color:red;
+font-size:14px;
+margin-top:8px;
+}
+
+.deleteBtn{
+background:#e74c3c;
+margin-left:6px;
+}
+
