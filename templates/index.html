@@ -91,13 +91,31 @@ body:JSON.stringify({email,password})
 const data = await res.json()
 
 if(res.status === 200){
+
 msg.style.color="green"
 msg.innerText="Registration successful! Logging you in..."
+
+const loginRes = await fetch("/login",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({email,password})
+})
+
+const loginData = await loginRes.json()
+
+token = loginData.access_token
+
+localStorage.setItem("token",token)
+localStorage.setItem("userEmail",email)
+
+showApp()
+showUser()
+loadHabits()
+loadDashboard()
 
 document.getElementById("email").value=""
 document.getElementById("password").value=""
 
-login()
 }
 
 else{
